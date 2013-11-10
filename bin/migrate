@@ -1,0 +1,2 @@
+#!/bin/bash
+bundle exec sequel -E -m ./migrations \$DATABASE_URL
