@@ -22,6 +22,6 @@ get '/' do
 end
 
 get '/events' do
-  DB[:events].inspect
+  DB[:events].all.inspect
 end
 
