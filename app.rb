@@ -25,3 +25,9 @@ get '/events' do
   DB[:events].all.inspect
 end
 
+post '/events' do
+  request.body.rewind
+  event = JSON.parse request.body.read
+  DB[:events].insert(:when => Time.now, :attrs => event)
+end
+
