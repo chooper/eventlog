@@ -41,8 +41,11 @@ get '/events' do
 
   # Allow filtering by date
   if params[:since]
-    # TODO: Catch parsing errors
-    start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
+    begin
+      start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
+    rescue
+       halt 400, {"status" => "error", "message" => "Could not parse `since` param: #{params[:since]}"}.to_json
+    end
     ds = ds.where { created_at >= start_date }
   end
 
