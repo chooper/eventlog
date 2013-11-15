@@ -2,20 +2,27 @@
 require 'sinatra'
 require 'sequel'
 
-if ENV['DATABASE_URL'].nil?
-  raise ArgumentError, "Missing DATABASE_URL from environment!"
+def env(key)
+  ENV[key]
 end
 
-DATABASE_URL = ENV["DATABASE_URL"]
+def env!(key)
+  v = env(key) 
+  return v unless v.nil?
+  raise ArgumentError, "Missing key '#{key}' from environment"
+end
 
-DB = Sequel.connect(DATABASE_URL,
-  test: true,
-  pool_timeout: 2,
-  connect_timeout: 2,
-  sslmode: 'require')
-DB.extension :pg_json
-
-require './models'
+configure do
+  DATABASE_URL = env!("DATABASE_URL")
+  DB = Sequel.connect(DATABASE_URL,
+    test:             true,
+    pool_timeout:     env('PG_POOL_TIMEOUT') || 2,
+    connect_timeout:  env('PG_CONN_TIMEOUT') || 2,
+    sslmode:          'require'
+  )
+  DB.extension :pg_json
+  require './models'
+end
 
 get '/' do
   "Ops Changelog"
@@ -26,11 +33,21 @@ get '/events' do
 end
 
 post '/events' do
-  request.body.rewind
-  event = JSON.parse request.body.read
-  unless event.is_a? Hash
-    halt 400, "Received payload is not a hash"
+  request.body.rewind # in case it's already been read
+
+  # Validate the payload
+  begin
+    event = JSON.parse request.body.read
+    unless event.is_a? Hash
+      halt 400, "Received payload is not a hash"
+    end
+  rescue
+    halt 400, "Received payload is not valid JSON"
   end
-  DB[:events].insert(:when => Time.now, :attrs => JSON.generate(event))
+
+  # Re-generate the JSON. Although... no good reason to not just pass the
+  # original payload through that I can think of.
+  event_json = JSON.generate event
+  DB[:events].insert(:when => Time.now, :attrs => event_json)
 end
 
