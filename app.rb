@@ -31,8 +31,8 @@ get '/' do
 end
 
 get '/events' do
-  # TODO: Sort. Maybe limit?
-  events = DB[:events].all
+  # TODO: Maybe limit?
+  events = DB[:events].order(:when).reverse.all
   JSON.generate(events)
 end
 
