@@ -41,11 +41,10 @@ get '/events' do
   if params[:since]
     # TODO: Catch parsing errors
     start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
-    end_date = Time.now.strftime("%Y-%m-%d")
-    ds = ds.where(date(:when) => (start_date .. end_date).to_a)
+    ds = ds.where { created_at >= start_date }
   end
 
-  events = ds.order(:when).reverse.all
+  events = ds.order(:created_at).reverse.all
   JSON.generate(events)
 end
 
@@ -72,7 +71,7 @@ post '/events' do
   end
 
   begin
-    DB[:events].insert(:when => Time.now, :attrs => event_json)
+    DB[:events].insert(:created_at => Time.now, :attrs => event_json)
   rescue
     halt 503, {"status" => "error", "message" => "Could not save the event"}.to_json
   end
