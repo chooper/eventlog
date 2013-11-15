@@ -24,30 +24,31 @@ configure do
   require './models'
 end
 
-# TODO: Content-type headers
-
 get '/' do
   "Ops Changelog"
 end
 
 get '/events' do
-  # TODO: Maybe limit?
+  content_type :json
+
+  # TODO: Accept parameters to narrow down `when`
+
   events = DB[:events].order(:when).reverse.all
   JSON.generate(events)
 end
 
-# TODO: Consider a return value
 post '/events' do
+  content_type :json
   request.body.rewind # in case it's already been read
 
   # Validate the payload
   begin
     event = JSON.parse(request.body.read)
     unless event.is_a? Hash
-      halt 400, "Received payload is not a hash"
+      halt 400, {"status" => "error", "message" => "Received payload is not a hash"}.to_json
     end
   rescue
-    halt 400, "Received payload is not valid JSON"
+    halt 400, {"status" => "error", "message" => "Received payload is not valid JSON"}.to_json
   end
 
   # Re-generate the JSON. Although... no good reason to not just pass the
@@ -55,13 +56,15 @@ post '/events' do
   begin
     event_json = JSON.generate(event)
   rescue
-    halt 400, "Could not coerce payload to valid JSON"
+    halt 400, {"status" => "error", "message" => "Could not coerce payload to valid JSON"}.to_json
   end
 
   begin
     DB[:events].insert(:when => Time.now, :attrs => event_json)
   rescue
-    halt 503, "Could not save the event"
+    halt 503, {"status" => "error", "message" => "Could not save the event"}.to_json
   end
+
+  {"status" => "ok"}.to_json
 end
 
