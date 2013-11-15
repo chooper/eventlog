@@ -25,7 +25,7 @@ helpers do
 
   def authorized?
     @auth ||=  Rack::Auth::Basic::Request.new(request.env)
-    @auth.provided? and @auth.basic? and @auth.credentials and SECRET_KEY and SECRET_KEY in @auth.credentials
+    @auth.provided? and @auth.basic? and @auth.credentials and SECRET_KEY and @auth.credentials.include?(SECRET_KEY)
   end
 end
 
