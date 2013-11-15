@@ -31,6 +31,6 @@ post '/events' do
   unless event.is_a? Hash
     halt 400, "Received payload is not a hash"
   end
-  DB[:events].insert(:when => Time.now, :attrs => event)
+  DB[:events].insert(:when => Time.now, :attrs => JSON.generate(event))
 end
 
