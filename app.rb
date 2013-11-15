@@ -25,7 +25,14 @@ helpers do
 
   def authorized?
     @auth ||=  Rack::Auth::Basic::Request.new(request.env)
-    @auth.provided? and @auth.basic? and @auth.credentials and SECRET_KEY and @auth.credentials.include?(SECRET_KEY)
+
+    # i don't actually care if the secret key is the username or the password, as long as its provided
+    # feels like there's some weird attack here where someone could test two possible passwords at once
+    @auth.provided? \
+      and @auth.basic? \
+      and @auth.credentials \
+      and SECRET_KEY \
+      and @auth.credentials.include?(SECRET_KEY)
   end
 end
 
