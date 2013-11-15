@@ -14,9 +14,26 @@ def env!(key)
   raise ArgumentError, "Missing key '#{key}' from environment"
 end
 
-# TODO: Add authentication of some kind. Probably a pre-shared key will do.
+helpers do
+  # protect some endpoints with a preshared key
+  def protected!
+    return if authorized?
+    headers['WWW-Authenticate'] = 'Basic realm="Restricted Area"'
+    # TODO: I probably want to return a JSON response, actually
+    halt 401, "Not authorized\n"
+  end
+
+  def authorized?
+    @auth ||=  Rack::Auth::Basic::Request.new(request.env)
+    @auth.provided? and @auth.basic? and @auth.credentials and SECRET_KEY and SECRET_KEY in @auth.credentials
+  end
+end
 
 configure do
+  # pull in the not-required secret key
+  SECRET_KEY = env("SECRET_KEY")
+
+  # configure the db connection
   DATABASE_URL = env!("DATABASE_URL")
   DB = Sequel.connect(DATABASE_URL,
     test:             true,
@@ -35,6 +52,7 @@ get '/' do
 end
 
 get '/events' do
+  protected!
   content_type :json
 
   ds = DB[:events]
@@ -54,6 +72,7 @@ get '/events' do
 end
 
 post '/events' do
+  protected!
   content_type :json
   request.body.rewind # in case it's already been read
 

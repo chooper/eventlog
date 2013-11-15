@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+# Generates a key to protect `eventlog` with
+require 'securerandom'
+puts SecureRandom.hex(16)
+

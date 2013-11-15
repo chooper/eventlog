@@ -59,14 +59,20 @@ $ curl http://eventlog/events?since=2013-11-15
     heroku config:set DATABASE_URL={the URL you noted}
     ```
 
-4. Initialize the DB and restart your dynos
+4. Configure a secret key
+
+    ```
+    heroku config:set SECRET_KEY=$(./scripts/gen-key)
+    ```
+
+5. Initialize the DB and restart your dynos
 
     ```
     heroku run sequel -E -m ./migrations \$DATABASE_URL
     heroku restart
     ```
 
-5. That's it! Your `eventlog` app should be up now
+6. That's it! Your `eventlog` app should be up now
 
     ```
     heroku open
