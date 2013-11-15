@@ -1,6 +1,8 @@
+$stdout.sync = true
 
 require 'sinatra'
 require 'sequel'
+require 'logger'
 
 def env(key)
   ENV[key]
@@ -18,8 +20,10 @@ configure do
     test:             true,
     pool_timeout:     env('PG_POOL_TIMEOUT') || 2,
     connect_timeout:  env('PG_CONN_TIMEOUT') || 2,
-    sslmode:          'require'
+    sslmode:          'require',
+    loggers:          [Logger.new($stdout)]
   )
+  DB.sql_log_level = :info
   DB.extension :pg_json
   require './models'
 end
@@ -31,9 +35,17 @@ end
 get '/events' do
   content_type :json
 
-  # TODO: Accept parameters to narrow down `when`
+  ds = DB[:events]
 
-  events = DB[:events].order(:when).reverse.all
+  # Allow filtering by date
+  if params[:since]
+    # TODO: Catch parsing errors
+    start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
+    end_date = Time.now.strftime("%Y-%m-%d")
+    ds = ds.where(date(:when) => (start_date .. end_date).to_a)
+  end
+
+  events = ds.order(:when).reverse.all
   JSON.generate(events)
 end
 
