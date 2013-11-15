@@ -28,6 +28,9 @@ end
 post '/events' do
   request.body.rewind
   event = JSON.parse request.body.read
+  unless event.is_a? Hash
+    halt 400, "Received payload is not a hash"
+  end
   DB[:events].insert(:when => Time.now, :attrs => event)
 end
 
