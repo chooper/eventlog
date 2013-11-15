@@ -14,6 +14,8 @@ def env!(key)
   raise ArgumentError, "Missing key '#{key}' from environment"
 end
 
+# TODO: Add authentication of some kind. Probably a pre-shared key will do.
+
 configure do
   DATABASE_URL = env!("DATABASE_URL")
   DB = Sequel.connect(DATABASE_URL,
