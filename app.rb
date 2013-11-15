@@ -24,20 +24,24 @@ configure do
   require './models'
 end
 
+# TODO: Content-type headers
+
 get '/' do
   "Ops Changelog"
 end
 
 get '/events' do
+  # TODO: Sort and return JSON
   DB[:events].all.inspect
 end
 
+# TODO: Consider a return value
 post '/events' do
   request.body.rewind # in case it's already been read
 
   # Validate the payload
   begin
-    event = JSON.parse request.body.read
+    event = JSON.parse(request.body.read)
     unless event.is_a? Hash
       halt 400, "Received payload is not a hash"
     end
@@ -47,7 +51,16 @@ post '/events' do
 
   # Re-generate the JSON. Although... no good reason to not just pass the
   # original payload through that I can think of.
-  event_json = JSON.generate event
-  DB[:events].insert(:when => Time.now, :attrs => event_json)
+  begin
+    event_json = JSON.generate(event)
+  rescue
+    halt 400, "Could not coerce payload to valid JSON"
+  end
+
+  begin
+    DB[:events].insert(:when => Time.now, :attrs => event_json)
+  rescue
+    halt 503, "Could not save the event"
+  end
 end
 
