@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 ruby '2.0.0'
 
+gem 'unicorn'
 gem 'sinatra'
 gem 'sequel'
 gem 'pg'
