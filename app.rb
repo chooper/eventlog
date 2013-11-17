@@ -34,6 +34,12 @@ helpers do
       and SECRET_KEY \
       and @auth.credentials.include?(SECRET_KEY)
   end
+  # /preshared key
+
+  # return user-facing errors
+  def error_response(message, code=400)
+    halt code, {"status" => "error", "message" => message}.to_json
+  end
 end
 
 configure do
@@ -55,7 +61,7 @@ configure do
 end
 
 get '/' do
-  "Ops Changelog"
+  "eventlog"
 end
 
 get '/events' do
@@ -75,7 +81,7 @@ get '/events' do
     begin
       start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
     rescue
-       halt 400, {"status" => "error", "message" => "Could not parse `since` param: #{params[:since]}"}.to_json
+      error_response "Could not parse `since` param: #{params[:since]}"
     end
     ds = ds.where { created_at >= start_date }
   end
@@ -93,28 +99,28 @@ post '/events' do
   begin
     event = JSON.parse(request.body.read)
   rescue
-    halt 400, {"status" => "error", "message" => "Received payload is not valid JSON"}.to_json
+    error_response "Received payload is not valid JSON"
   end
   unless event.is_a? Hash
-    halt 400, {"status" => "error", "message" => "Received payload is not a hash"}.to_json
+    error_response "Received payload is not a hash" unless event.is_a? Hash
   end
   key = event.delete('key')
   if key.nil?
-    halt 400, {"status" => "error", "message" => "Received payload has no `key` attr"}.to_json
+    error_response "Received payload has no `key` attr"
   end
 
   # Re-generate the JSON
   begin
     event_json = JSON.generate(event)
   rescue
-    halt 400, {"status" => "error", "message" => "Could not coerce payload to valid JSON"}.to_json
+    error_response "Could not coerce payload to valid JSON"
   end
 
   # Insert event into DB
   begin
     DB[:events].insert(:created_at => Time.now, :key => key, :attrs => event_json)
   rescue
-    halt 503, {"status" => "error", "message" => "Could not save the event"}.to_json
+    error_response "Could not save the event", 503
   end
 
   {"status" => "ok"}.to_json
