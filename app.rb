@@ -40,6 +40,20 @@ helpers do
   def error_response(message, code=400)
     halt code, {"status" => "error", "message" => message}.to_json
   end
+
+  # validate payload
+  def validate_payload(payload)
+    begin
+      event = JSON.parse(payload)
+    rescue
+      error_response "Received payload is not valid JSON"
+    end
+
+    error_response("Received payload is not a hash") unless event.is_a? Hash
+    error_response("Received payload has no `key` attr") if event['key'].nil?
+    key = event.delete('key') 
+    return [key, event]
+  end
 end
 
 configure do
@@ -96,18 +110,7 @@ post '/events' do
   request.body.rewind # in case it's already been read
 
   # validate the payload
-  begin
-    event = JSON.parse(request.body.read)
-  rescue
-    error_response "Received payload is not valid JSON"
-  end
-  unless event.is_a? Hash
-    error_response "Received payload is not a hash" unless event.is_a? Hash
-  end
-  key = event.delete('key')
-  if key.nil?
-    error_response "Received payload has no `key` attr"
-  end
+  key, event = validate_payload(request.body.read)
 
   # Re-generate the JSON
   begin
