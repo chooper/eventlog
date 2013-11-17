@@ -8,9 +8,10 @@ A very thin, generic Sinatra app that stores event information.
 data can be performed via `curl`, for example, like so:
 
 ```
-$ curl -d '{"message": "this is a test"}' http://eventlog/events
+$ curl -d '{"key": "test", "message": "events have keys"}' http://eventlog/events
 {"status":"ok"}
 ```
+
 
 It is important to note that `eventlog` expects valid JSON and will reject
 payloads that do not fit this description with HTTP 400 status codes.
@@ -32,10 +33,16 @@ Querying `eventlog` is also simple:
 
 ```
 $ curl http://eventlog/events
-[{"id":3,"created_at":"2013-11-15 15:02:13 +0000","attrs":{"message":"this is a test"}},{"id":2,"created_at":"2013-11-15 15:01:41 +0000","attrs":{"message":"this is another test"}},{"id":1,"created_at":"2013-11-14 14:55:24 +0000","attrs":{"name":"wee"}}]sub@asdf:~/projects/event-logger$ 
+[{"id":1,"created_at":"2013-11-17 00:18:44 +0000","attrs":{"message":"events have keys"},"key":"test"}]
 
 $ curl http://eventlog/events?since=2013-11-15
-[{"id":3,"created_at":"2013-11-15 15:02:13 +0000","attrs":{"message":"this is a test"}},{"id":2,"created_at":"2013-11-15 15:01:41 +0000","attrs":{"message":"this is another test"}}]
+[{"id":1,"created_at":"2013-11-17 00:18:44 +0000","attrs":{"message":"events have keys"},"key":"test"}]
+
+$ curl 'http://eventlog/events?since=2013-11-15&key=test'
+[{"id":1,"created_at":"2013-11-17 00:18:44 +0000","attrs":{"message":"events have keys"},"key":"test"}]
+
+$ curl 'http://eventlog/events?since=2013-11-15&key=some_other_key'
+[]
 ```
 
 ## Installation

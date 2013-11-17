@@ -64,7 +64,13 @@ get '/events' do
 
   ds = DB[:events]
 
-  # Allow filtering by date
+  # filter by key
+  if params[:key]
+    key = params[:key]
+    ds = ds.where(key: key)
+  end
+
+  # filter by date
   if params[:since]
     begin
       start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
@@ -83,26 +89,30 @@ post '/events' do
   content_type :json
   request.body.rewind # in case it's already been read
 
-  # Validate the payload
+  # validate the payload
   begin
     event = JSON.parse(request.body.read)
-    unless event.is_a? Hash
-      halt 400, {"status" => "error", "message" => "Received payload is not a hash"}.to_json
-    end
   rescue
     halt 400, {"status" => "error", "message" => "Received payload is not valid JSON"}.to_json
   end
+  unless event.is_a? Hash
+    halt 400, {"status" => "error", "message" => "Received payload is not a hash"}.to_json
+  end
+  key = event.delete('key')
+  if key.nil?
+    halt 400, {"status" => "error", "message" => "Received payload has no `key` attr"}.to_json
+  end
 
-  # Re-generate the JSON. Although... no good reason to not just pass the
-  # original payload through that I can think of.
+  # Re-generate the JSON
   begin
     event_json = JSON.generate(event)
   rescue
     halt 400, {"status" => "error", "message" => "Could not coerce payload to valid JSON"}.to_json
   end
 
+  # Insert event into DB
   begin
-    DB[:events].insert(:created_at => Time.now, :attrs => event_json)
+    DB[:events].insert(:created_at => Time.now, :key => key, :attrs => event_json)
   rescue
     halt 503, {"status" => "error", "message" => "Could not save the event"}.to_json
   end
