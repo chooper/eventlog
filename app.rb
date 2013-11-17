@@ -77,7 +77,7 @@ configure do
     sslmode:          'require',
     loggers:          [Logger.new($stdout)]
   )
-  DB.sql_log_level = :info
+  DB.sql_log_level = env("SQL_DEBUG").downcase.to_sym || :debug
   DB.extension :pg_json
   require './models'
 end
