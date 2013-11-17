@@ -18,6 +18,7 @@ helpers do
   # protect some endpoints with a preshared key
   def protected!
     return if authorized?
+    log(at: 'unauthorized')
     headers['WWW-Authenticate'] = 'Basic realm="Restricted Area"'
     # TODO: I probably want to return a JSON response, actually
     halt 401, "Not authorized\n"
@@ -38,6 +39,7 @@ helpers do
 
   # return user-facing errors
   def error_response(message, code=400)
+    log(at: 'error_response', code: code)
     halt code, {"status" => "error", "message" => message}.to_json
   end
 
@@ -53,6 +55,12 @@ helpers do
     error_response("Received payload has no `key` attr") if event['key'].nil?
     key = event.delete('key') 
     return [key, event]
+  end
+
+  # crude logging
+  def log(message_hash)
+    # TODO: Emit key=value pairs instead of JSON
+    puts JSON.generate(message_hash)
   end
 end
 
@@ -126,6 +134,7 @@ post '/events' do
     error_response "Could not save the event", 503
   end
 
+  log(at: 'save_success')
   {"status" => "ok"}.to_json
 end
 
