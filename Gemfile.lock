@@ -29,6 +29,7 @@ GEM
     rest-client (1.6.7)
       mime-types (>= 1.16)
     rubyzip (1.1.0)
+    scrolls (0.3.8)
     sequel (4.4.0)
     sequel_pg (1.6.8)
       pg (>= 0.8.0)
@@ -52,6 +53,7 @@ DEPENDENCIES
   heroku
   pg
   pg_json
+  scrolls
   sequel
   sequel_pg
   sinatra

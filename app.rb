@@ -3,6 +3,7 @@ $stdout.sync = true
 require 'sinatra'
 require 'sequel'
 require 'logger'
+require 'scrolls'
 
 def env(key)
   ENV[key]
@@ -47,7 +48,8 @@ helpers do
   def validate_payload(payload)
     begin
       event = JSON.parse(payload)
-    rescue
+    rescue Exception => e
+      log_exception({:at => "validate_payload"}, e)
       error_response "Received payload is not valid JSON"
     end
 
@@ -59,12 +61,21 @@ helpers do
 
   # crude logging
   def log(message_hash)
-    # TODO: Emit key=value pairs instead of JSON
-    puts JSON.generate(message_hash)
+    Scrolls.log(message_hash)
+  end
+
+  def log_exception(message_hash, exc)
+    Scrolls.log_exception(message_hash, exc)
   end
 end
 
 configure do
+  # set up logging
+  Scrolls.init(
+    :global_context => { :app => "eventlog" },
+    :timestamp => true,
+  )
+
   # pull in the not-required secret key
   SECRET_KEY = env("SECRET_KEY")
 
@@ -80,6 +91,9 @@ configure do
   DB.sql_log_level = env("SQL_DEBUG").downcase.to_sym || :debug
   DB.extension :pg_json
   require './models'
+
+  # set up sinatra
+  disable :sessions
 end
 
 get '/' do
@@ -102,7 +116,8 @@ get '/events' do
   if params[:since]
     begin
       start_date = Time.parse(params[:since]).strftime("%Y-%m-%d")
-    rescue
+    rescue Exception => e
+      log_exception({:at => "filter_by_date"}, e)
       error_response "Could not parse `since` param: #{params[:since]}"
     end
     ds = ds.where { created_at >= start_date }
@@ -123,14 +138,16 @@ post '/events' do
   # Re-generate the JSON
   begin
     event_json = JSON.generate(event)
-  rescue
+  rescue Exception => e
+    log_exception({:at => "save_event"}, e)
     error_response "Could not coerce payload to valid JSON"
   end
 
   # Insert event into DB
   begin
     DB[:events].insert(:created_at => Time.now, :key => key, :attrs => event_json)
-  rescue
+  rescue Exception => e
+    log_exception({:at => "insert_event"}, e)
     error_response "Could not save the event", 503
   end
 
