@@ -18,10 +18,16 @@ end
 helpers do
   # protect some endpoints with a preshared key
   def protected!
-    return if authorized?
-    log(at: 'unauthorized')
+    if authorized?
+      log({
+        :at => 'authorized', "count#eventlog.http.authorized" => "1"
+      })
+      return
+    end
+
+    log({ :at => 'unauthorized', "count#eventlog.http.unauthorized" => "1" }) 
     headers['WWW-Authenticate'] = 'Basic realm="Restricted Area"'
-    # TODO: I probably want to return a JSON response, actually
+    # TODO: I probably should return a JSON response
     halt 401, "Not authorized\n"
   end
 
@@ -94,6 +100,25 @@ configure do
 
   # set up sinatra
   disable :sessions
+end
+
+before do
+  @request_start_time = Time.new
+  log({
+    "count#eventlog.http.request" => "1",
+    "count#eventlog.http.request.#{request.request_method.downcase}" => "1",
+  })
+end
+
+after do
+  @request_end_time = Time.new
+  @request_duration = (@request_end_time - @request_start_time) * 1000
+  log({
+    "measure#eventlog.http.duration" => "#{@request_duration.to_i}ms",
+    "count#eventlog.http.response" => "1",
+    "count#eventlog.http.response.#{response.status.to_s[0]}xx" => "1",
+    "count#eventlog.http.response.#{request.request_method.downcase}" => "1",
+  })
 end
 
 get '/' do
